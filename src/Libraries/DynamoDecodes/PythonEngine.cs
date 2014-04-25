@@ -4,7 +4,7 @@ using Dynamo;
 
 namespace DynamoDecodes
 {
-    public static class PythonEngine
+    public static class PythonEngineDecodes
     {
         public delegate FScheme.Value EvaluationDelegate(
             bool dirty, string script, IEnumerable<KeyValuePair<string, dynamic>> bindings,
@@ -16,9 +16,9 @@ namespace DynamoDecodes
 
         public static DrawDelegate Drawing;
 
-        private static readonly DynPythonEngine Engine = new DynPythonEngine();
+        private static readonly DecodesPythonEngine Engine = new DecodesPythonEngine();
 
-        static PythonEngine()
+        static PythonEngineDecodes()
         {
             Evaluator =
                 delegate(bool dirty, string script,
@@ -31,7 +31,7 @@ namespace DynamoDecodes
                         dirty = false;
                     }
 
-                    return Engine.Evaluate(PythonBindings.Bindings.Concat(bindings), inputs);
+                    return Engine.Evaluate(DecodesPythonBindings.Bindings.Concat(bindings), inputs);
                 };
 
             Drawing = delegate { };

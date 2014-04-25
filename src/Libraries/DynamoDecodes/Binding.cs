@@ -6,9 +6,9 @@ using Dynamo.Utilities;
 
 namespace DynamoDecodes
 {
-    public static class PythonBindings
+    public static class DecodesPythonBindings
     {
-        static PythonBindings()
+        static DecodesPythonBindings()
         {
             Bindings = new Dictionary<string, dynamic> { {"__dynamo__", dynSettings.Controller} };
         }

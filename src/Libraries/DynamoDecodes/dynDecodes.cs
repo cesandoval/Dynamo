@@ -18,10 +18,10 @@ using Value = Dynamo.FScheme.Value;
 
 namespace Dynamo.Nodes
 {
-    [NodeName("LEGACY Python Script")]
-    [NodeCategory(BuiltinNodeCategories.CORE_SCRIPTING + ".Legacy")]
-    [NodeDescription("Runs an embedded IronPython script")]
-    public class Python : NodeModel
+    [NodeName("Decodes Script")]
+    [NodeCategory(BuiltinNodeCategories.CORE_SCRIPTING)]
+    [NodeDescription("Runs an embedded Decodes script")]
+    public class Decodes : NodeWithOneOutput
     {
         private bool _dirty = true;
         private Value _lastEvalValue;
@@ -36,10 +36,10 @@ namespace Dynamo.Nodes
         /// </summary>
         private string _script;
 
-        public Python()
+        public Decodes()
         {
             InPortData.Add(new PortData("IN", "Input", typeof(object)));
-            OutPortData.Add(new PortData("OUT", "Result of the python script", typeof(object)));
+            OutPortData.Add(new PortData("OUT", "Result of the Decodes script", typeof(object)));
 
             RegisterAllPorts();
             InitializeDefaultScript();
@@ -157,19 +157,19 @@ namespace Dynamo.Nodes
             return bindings;
         }
 
-        //public override Value Evaluate(FSharpList<Value> args)
-        //{
-        //    var bindings = new List<KeyValuePair<string, dynamic>>
-        //    {
-        //        new KeyValuePair<string, dynamic>("__persistent__", _stateDict)
-        //    };
-        //    Value result = PythonEngine.Evaluator(_dirty, _script, bindings, MakeBindings(args));
-        //    _lastEvalValue = result;
+        public override Value Evaluate(FSharpList<Value> args)
+        {
+            var bindings = new List<KeyValuePair<string, dynamic>>
+            {
+                new KeyValuePair<string, dynamic>("__persistent__", _stateDict)
+            };
+            Value result = PythonEngineDecodes.Evaluator(_dirty, _script, bindings, MakeBindings(args));
+            _lastEvalValue = result;
 
-        //    Draw();
+            Draw();
 
-        //    return result;
-        //}
+            return result;
+        }
 
         protected override bool UpdateValueCore(string name, string value)
         {
@@ -193,7 +193,7 @@ namespace Dynamo.Nodes
         private void Draw()
         {
             if(_lastEvalValue != null)
-                PythonEngine.Drawing(_lastEvalValue, GUID.ToString());
+                PythonEngineDecodes.Drawing(_lastEvalValue, GUID.ToString());
         }
 
         #region SerializeCore/DeserializeCore
@@ -219,14 +219,14 @@ namespace Dynamo.Nodes
         public static NodeMigrationData Migrate_0630_to_0700(NodeMigrationData data)
         {
             System.Xml.XmlElement xmlNode = data.MigratedNodes.ElementAt(0);
-            var element = MigrationManager.CloneAndChangeName(xmlNode, "DSIronPythonNode.PythonNode", "Python Script");
-            element.SetAttribute("nickname", "Python Script");
+            var element = MigrationManager.CloneAndChangeType(xmlNode, "DecodesIronPythonNode.DecodesNode");
+            element.SetAttribute("nickname", "Decodes Script");
             element.SetAttribute("inputcount", "1");
             element.RemoveAttribute("inputs");
 
             foreach (XmlElement subNode in xmlNode.ChildNodes)
             {
-                element.AppendChild(subNode.Clone());
+                element.AppendChild(subNode);
                 subNode.InnerText = Regex.Replace(element.InnerText, @"\bIN\b", "IN[0]");
             }
 
@@ -236,10 +236,10 @@ namespace Dynamo.Nodes
         }
     }
 
-    [NodeName("LEGACY Python Script With Variable Number of Inputs")]
-    [NodeCategory(BuiltinNodeCategories.CORE_SCRIPTING + ".Legacy")]
-    [NodeDescription("Runs an embedded IronPython script")]
-    public class PythonVarIn : VariableInput
+    [NodeName("Decodes Script With Variable Number of Inputs")]
+    [NodeCategory(BuiltinNodeCategories.CORE_SCRIPTING)]
+    [NodeDescription("Runs an embedded Decodes script")]
+    public class DecodesVarIn : VariableInput
     {
         private bool _dirty = true;
         private Value _lastEvalValue;
@@ -254,10 +254,10 @@ namespace Dynamo.Nodes
         /// </summary>
         private string _script;
 
-        public PythonVarIn()
+        public DecodesVarIn()
         {
             InPortData.Add(new PortData("IN0", "Input0", typeof(object)));
-            OutPortData.Add(new PortData("OUT", "Result of the python script", typeof(object)));
+            OutPortData.Add(new PortData("OUT", "Result of the decodes script", typeof(object)));
 
             RegisterAllPorts();
             InitializeDefaultScript();
@@ -422,19 +422,19 @@ namespace Dynamo.Nodes
             return bindings;
         }
 
-        //public override Value Evaluate(FSharpList<Value> args)
-        //{
-        //    var bindings = new List<KeyValuePair<string, dynamic>>
-        //    {
-        //        new KeyValuePair<string, dynamic>("__persistent__", _stateDict)
-        //    };
-        //    Value result = PythonEngine.Evaluator(_dirty, _script, bindings, MakeBindings(args));
-        //    _lastEvalValue = result;
+        public override Value Evaluate(FSharpList<Value> args)
+        {
+            var bindings = new List<KeyValuePair<string, dynamic>>
+            {
+                new KeyValuePair<string, dynamic>("__persistent__", _stateDict)
+            };
+            Value result = PythonEngineDecodes.Evaluator(_dirty, _script, bindings, MakeBindings(args));
+            _lastEvalValue = result;
 
-        //    Draw();
+            Draw();
 
-        //    return result;
-        //}
+            return result;
+        }
 
         protected override bool UpdateValueCore(string name, string value)
         {
@@ -458,7 +458,7 @@ namespace Dynamo.Nodes
         private void Draw()
         {
             if(_lastEvalValue != null)
-                PythonEngine.Drawing(_lastEvalValue, GUID.ToString());
+                PythonEngineDecodes.Drawing(_lastEvalValue, GUID.ToString());
         }
 
         #region SerializeCore/DeserializeCore
@@ -484,14 +484,14 @@ namespace Dynamo.Nodes
         public static NodeMigrationData Migrate_0630_to_0700(NodeMigrationData data)
         {
             System.Xml.XmlElement xmlNode = data.MigratedNodes.ElementAt(0);
-            var element = MigrationManager.CloneAndChangeName(xmlNode, "DSIronPythonNode.PythonNode", "Python Script");
-            element.SetAttribute("nickname", "Python Script");
+            var element = MigrationManager.CloneAndChangeType(xmlNode, "DecodesIronPythonNode.DecodesNode");
+            element.SetAttribute("nickname", "Decodes Script");
             element.SetAttribute("inputcount", xmlNode.GetAttribute("inputs"));
             element.RemoveAttribute("inputs");
 
             foreach (XmlElement subNode in xmlNode.ChildNodes)
             {
-                element.AppendChild(subNode.Clone());
+                element.AppendChild(subNode);
                 subNode.InnerText = Regex.Replace(element.InnerText, @"\bIN[0-9]+\b", delegate(Match m)
                 {
                     return "IN[" + m.ToString().Substring(2) + "]";
@@ -504,65 +504,4 @@ namespace Dynamo.Nodes
         }
     }
 
-    [NodeName("LEGACY Python Script From String")]
-    [NodeCategory(BuiltinNodeCategories.CORE_SCRIPTING + ".Legacy")]
-    [NodeDescription("Runs a IronPython script from a string")]
-    public class PythonString : NodeModel
-    {
-
-        /// <summary>
-        /// Allows a scripter to have a persistent reference to previous runs.
-        /// </summary>
-        private readonly Dictionary<string, dynamic> _stateDict = new Dictionary<string, dynamic>();
-
-        public PythonString()
-        {
-            InPortData.Add(new PortData("script", "Script to run", typeof(Value.String)));
-            InPortData.Add(new PortData("IN", "Input", typeof(object)));
-            OutPortData.Add(new PortData("OUT", "Result of the python script", typeof(object)));
-
-            RegisterAllPorts();
-
-            ArgumentLacing = LacingStrategy.Disabled;
-        }
-
-        private IEnumerable<KeyValuePair<string, Value>> makeBindings(IEnumerable<Value> args)
-        {
-            //Zip up our inputs
-            var bindings = 
-               InPortData
-               .Select(x => x.NickName)
-               .Zip(args, (s, v) => new KeyValuePair<string, Value>(s, v))
-               //.Concat(PythonBindings.Bindings)
-               .ToList();
-
-            //bindings.Add(new KeyValuePair<string, dynamic>("__persistent__", _stateDict));
-
-            return bindings;
-        }
-
-        //public override Value Evaluate(FSharpList<Value> args)
-        //{
-        //    var script = ((Value.String) args[0]).Item;
-        //    var inputs = makeBindings(args);
-        //    var bindings = new List<KeyValuePair<string, dynamic>>
-        //    {
-        //        new KeyValuePair<string, dynamic>("__persistent__", _stateDict)
-        //    };
-        //    var value = PythonEngine.Evaluator(RequiresRecalc, script, bindings, inputs);
-        //    return value;
-        //}
-
-        [NodeMigration(from: "0.6.3.0", to: "0.7.0.0")]
-        public static NodeMigrationData Migrate_0630_to_0700(NodeMigrationData data)
-        {
-            System.Xml.XmlElement xmlNode = data.MigratedNodes.ElementAt(0);
-            var element = MigrationManager.CloneAndChangeName(xmlNode, "DSIronPythonNode.PythonStringNode", "Python Script From String");
-            element.SetAttribute("inputcount", "2");
-
-            NodeMigrationData migrationData = new NodeMigrationData(data.Document);
-            migrationData.AppendNode(element);
-            return migrationData;
-        }
-    }
 }

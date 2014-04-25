@@ -15,13 +15,14 @@ using System.Xml;
 using Dynamo;
 using Dynamo.Controls;
 using Dynamo.Python;
+//using Dynamo.Decodes;
 using Dynamo.Utilities;
 using ICSharpCode.AvalonEdit.CodeCompletion;
 using ICSharpCode.AvalonEdit.Highlighting;
 using ICSharpCode.AvalonEdit.Highlighting.Xshd;
 using DynCmd = Dynamo.ViewModels.DynamoViewModel;
 
-namespace DSIronPythonNode
+namespace DecodesPythonNode
 {
     /// <summary>
     /// Interaction logic for ScriptEditorWindow.xaml

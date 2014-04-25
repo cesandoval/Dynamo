@@ -9,12 +9,12 @@ using Python = IronPython.Hosting.Python;
 
 namespace DynamoDecodes
 {
-    internal class DynPythonEngine
+    internal class DecodesPythonEngine
     {
         private readonly ScriptEngine _engine;
         private ScriptSource _source;
 
-        public DynPythonEngine()
+        public DecodesPythonEngine()
         {
             _engine = Python.CreateEngine();
         }
