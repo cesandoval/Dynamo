@@ -11,7 +11,7 @@ using Dynamo.Controls;
 using Dynamo.Core;
 using Dynamo.Models;
 using Dynamo.Utilities;
-using DynamoPython;
+using DynamoDecodes;
 using IronPython.Modules;
 using Microsoft.FSharp.Collections;
 using Value = Dynamo.FScheme.Value;
@@ -20,7 +20,7 @@ namespace Dynamo.Nodes
 {
     [NodeName("Decodes Script")]
     [NodeCategory(BuiltinNodeCategories.CORE_SCRIPTING)]
-    [NodeDescription("Runs an embedded IronPython script")]
+    [NodeDescription("Runs an embedded Decodes script")]
     public class Decodes : NodeWithOneOutput
     {
         private bool _dirty = true;
@@ -163,7 +163,7 @@ namespace Dynamo.Nodes
             {
                 new KeyValuePair<string, dynamic>("__persistent__", _stateDict)
             };
-            Value result = PythonEngine.Evaluator(_dirty, _script, bindings, MakeBindings(args));
+            Value result = PythonEngineDecodes.Evaluator(_dirty, _script, bindings, MakeBindings(args));
             _lastEvalValue = result;
 
             Draw();
@@ -193,7 +193,7 @@ namespace Dynamo.Nodes
         private void Draw()
         {
             if(_lastEvalValue != null)
-                PythonEngine.Drawing(_lastEvalValue, GUID.ToString());
+                PythonEngineDecodes.Drawing(_lastEvalValue, GUID.ToString());
         }
 
         #region SerializeCore/DeserializeCore
@@ -219,7 +219,7 @@ namespace Dynamo.Nodes
         public static NodeMigrationData Migrate_0630_to_0700(NodeMigrationData data)
         {
             System.Xml.XmlElement xmlNode = data.MigratedNodes.ElementAt(0);
-            var element = MigrationManager.CloneAndChangeType(xmlNode, "DSIronPythonNode.DecodesNode");
+            var element = MigrationManager.CloneAndChangeType(xmlNode, "DecodesIronPythonNode.DecodesNode");
             element.SetAttribute("nickname", "Decodes Script");
             element.SetAttribute("inputcount", "1");
             element.RemoveAttribute("inputs");
@@ -238,7 +238,7 @@ namespace Dynamo.Nodes
 
     [NodeName("Decodes Script With Variable Number of Inputs")]
     [NodeCategory(BuiltinNodeCategories.CORE_SCRIPTING)]
-    [NodeDescription("Runs an embedded IronPython script")]
+    [NodeDescription("Runs an embedded Decodes script")]
     public class DecodesVarIn : VariableInput
     {
         private bool _dirty = true;
@@ -428,7 +428,7 @@ namespace Dynamo.Nodes
             {
                 new KeyValuePair<string, dynamic>("__persistent__", _stateDict)
             };
-            Value result = PythonEngine.Evaluator(_dirty, _script, bindings, MakeBindings(args));
+            Value result = PythonEngineDecodes.Evaluator(_dirty, _script, bindings, MakeBindings(args));
             _lastEvalValue = result;
 
             Draw();
@@ -458,7 +458,7 @@ namespace Dynamo.Nodes
         private void Draw()
         {
             if(_lastEvalValue != null)
-                PythonEngine.Drawing(_lastEvalValue, GUID.ToString());
+                PythonEngineDecodes.Drawing(_lastEvalValue, GUID.ToString());
         }
 
         #region SerializeCore/DeserializeCore
@@ -484,7 +484,7 @@ namespace Dynamo.Nodes
         public static NodeMigrationData Migrate_0630_to_0700(NodeMigrationData data)
         {
             System.Xml.XmlElement xmlNode = data.MigratedNodes.ElementAt(0);
-            var element = MigrationManager.CloneAndChangeType(xmlNode, "DSIronPythonNode.DecodesNode");
+            var element = MigrationManager.CloneAndChangeType(xmlNode, "DecodesIronPythonNode.DecodesNode");
             element.SetAttribute("nickname", "Decodes Script");
             element.SetAttribute("inputcount", xmlNode.GetAttribute("inputs"));
             element.RemoveAttribute("inputs");

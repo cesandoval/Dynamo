@@ -12,11 +12,11 @@ using Dynamo.Utilities;
 using ProtoCore.AST.AssociativeAST;
 using Autodesk.DesignScript.Runtime;
 
-namespace DSIronPythonNode
+namespace DecodesPythonNode
 {
-    public abstract class PythonNodeBase : VariableInputNode
+    public abstract class DecodesNodeBase : VariableInputNode
     {
-        protected PythonNodeBase()
+        protected DecodesNodeBase()
         {
             OutPortData.Add(new PortData("OUT", "Result of the decodes script"));
             ArgumentLacing = LacingStrategy.Disabled;
@@ -62,15 +62,17 @@ namespace DSIronPythonNode
 
     [NodeName("Decodes Script")]
     [NodeCategory(BuiltinNodeCategories.CORE_SCRIPTING)]
-    [NodeDescription("Runs an embedded IronPython script")]
+    [NodeDescription("Runs an embedded Decodes script")]
     [SupressImportIntoVM]
     [IsDesignScriptCompatible]
-    public class PythonNode : PythonNodeBase
+    public class DecodesNode : DecodesNodeBase
     {
-        public PythonNode()
+        public DecodesNode()
         {
             _script = "import clr, sys\nclr.AddReference('ProtoGeometry')\n"
+                + "clr.AddReference('DSCoreNodes')\n"
                 + "from Autodesk.DesignScript.Geometry import *\n"
+                + "import DSCore\n"
                 + "## -- BEGIN DECODES HEADER -- ##\n"
                 + "sys.path.append('C:/Python27/Lib')\n"
                 + "import os\n"

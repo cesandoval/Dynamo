@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using Dynamo.Utilities;
 
-namespace DynamoPython
+namespace DynamoDecodes
 {
     public static class PythonBindings
     {

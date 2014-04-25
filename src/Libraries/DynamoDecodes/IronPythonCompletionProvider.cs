@@ -15,7 +15,7 @@ using Microsoft.Scripting;
 using System.Threading;
 using System.Reflection;
 
-namespace DynamoPython
+namespace DynamoDecodes
 {
     /// <summary>
     /// Provides code completion for the Python Editor

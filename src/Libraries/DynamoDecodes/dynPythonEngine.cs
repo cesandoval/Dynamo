@@ -7,14 +7,14 @@ using Microsoft.Scripting;
 using Microsoft.Scripting.Hosting;
 using Python = IronPython.Hosting.Python;
 
-namespace DynamoPython
+namespace DynamoDecodes
 {
-    internal class DynPythonEngine
+    internal class DecodesPythonEngine
     {
         private readonly ScriptEngine _engine;
         private ScriptSource _source;
 
-        public DynPythonEngine()
+        public DecodesPythonEngine()
         {
             _engine = Python.CreateEngine();
         }

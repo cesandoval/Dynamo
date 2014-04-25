@@ -2,7 +2,7 @@
 using System.Linq;
 using Dynamo;
 
-namespace DynamoPython
+namespace DynamoDecodes
 {
     public static class PythonEngine
     {
