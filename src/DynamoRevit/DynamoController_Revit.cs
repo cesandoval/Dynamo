@@ -6,16 +6,13 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Windows.Forms;
 using System.Windows.Threading;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.DB.Events;
-using Autodesk.Revit.UI;
 using Autodesk.Revit.UI.Events;
 using DSNodeServices;
 using Dynamo.Applications;
 using Dynamo.DSEngine;
-using Dynamo.FSchemeInterop;
 using Dynamo.Models;
 using Dynamo.Nodes;
 using Dynamo.PackageManager;
@@ -30,7 +27,6 @@ using ChangeType = RevitServices.Elements.ChangeType;
 using CurveLoop = Autodesk.Revit.DB.CurveLoop;
 using ReferencePlane = Autodesk.Revit.DB.ReferencePlane;
 using RevThread = RevitServices.Threading;
-using Transaction = Dynamo.Nodes.Transaction;
 
 #endregion
 
@@ -45,8 +41,7 @@ namespace Dynamo
         /// </summary>
         private Assembly singleSignOnAssembly;
 
-        public DynamoController_Revit(
-            ExecutionEnvironment env, RevitServicesUpdater updater, Type viewModelType, string context)
+        public DynamoController_Revit(RevitServicesUpdater updater, Type viewModelType, string context)
             : base(
                 viewModelType,
                 context,
@@ -58,11 +53,11 @@ namespace Dynamo
 
             dynRevitSettings.Controller = this;
 
-            Predicate<NodeModel> requiresTransactionPredicate = node => node is RevitTransactionNode;
-            CheckRequiresTransaction = new PredicateTraverser(requiresTransactionPredicate);
+            //Predicate<NodeModel> requiresTransactionPredicate = node => node is RevitTransactionNode;
+            //CheckRequiresTransaction = new PredicateTraverser(requiresTransactionPredicate);
 
-            Predicate<NodeModel> manualTransactionPredicate = node => node is Transaction;
-            CheckManualTransaction = new PredicateTraverser(manualTransactionPredicate);
+            //Predicate<NodeModel> manualTransactionPredicate = node => node is Transaction;
+            //CheckManualTransaction = new PredicateTraverser(manualTransactionPredicate);
 
             dynSettings.Controller.DynamoViewModel.RequestAuthentication += RegisterSingleSignOn;
 
@@ -91,8 +86,8 @@ namespace Dynamo
         }
 
         public RevitServicesUpdater Updater { get; private set; }
-        public PredicateTraverser CheckManualTransaction { get; private set; }
-        public PredicateTraverser CheckRequiresTransaction { get; private set; }
+        //public PredicateTraverser CheckManualTransaction { get; private set; }
+        //public PredicateTraverser CheckRequiresTransaction { get; private set; }
 
         /// <summary>
         ///     A dictionary which temporarily stores element names for setting after element deletion.
@@ -326,11 +321,12 @@ namespace Dynamo
         ///     authentication information.
         /// </summary>
         /// <returns>The SSONet assembly</returns>
-        private Assembly LoadSSONet()
+        private static Assembly LoadSSONet()
         {
             // get the location of RevitAPI assembly.  SSONet is in the same directory.
             Assembly revitAPIAss = Assembly.GetAssembly(typeof(XYZ)); // any type loaded from RevitAPI
             string revitAPIDir = Path.GetDirectoryName(revitAPIAss.Location);
+            Debug.Assert(revitAPIDir != null, "revitAPIDir != null");
 
             //Retrieve the list of referenced assemblies in an array of AssemblyName.
             string strTempAssmbPath = Path.Combine(revitAPIDir, "SSONET.dll");
@@ -503,7 +499,7 @@ namespace Dynamo
                                 rp.Name = kvp.Value;
                             }
                         }
-                        catch (Exception ex)
+                        catch (Exception)
                         {
                             if (el is ReferencePlane)
                             {
@@ -674,6 +670,7 @@ namespace Dynamo
             try
             {
                 string assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                Debug.Assert(assemblyPath != null, "assemblyPath != null");
 
                 Assembly ironPythonAssembly = null;
 
@@ -815,23 +812,21 @@ namespace Dynamo
 
         private delegate void LogDelegate(string msg);
 
-        private delegate void SaveElementDelegate(Element e);
-
         #endregion
 
         #region Element Persistence Management
 
-        private readonly Dictionary<ElementUpdateDelegate, HashSet<ElementId>> transDelElements =
-            new Dictionary<ElementUpdateDelegate, HashSet<ElementId>>();
+        private readonly Dictionary<ElementUpdateDelegate, HashSet<string>> transDelElements =
+            new Dictionary<ElementUpdateDelegate, HashSet<string>>();
 
-        private readonly List<ElementId> transElements = new List<ElementId>();
+        private readonly List<string> transElements = new List<string>();
 
-        internal void RegisterSuccessfulDeleteHook(ElementId id, ElementUpdateDelegate updateDelegate)
+        internal void RegisterSuccessfulDeleteHook(string id, ElementUpdateDelegate updateDelegate)
         {
-            HashSet<ElementId> elements;
+            HashSet<string> elements;
             if (!transDelElements.TryGetValue(updateDelegate, out elements))
             {
-                elements = new HashSet<ElementId>();
+                elements = new HashSet<string>();
                 transDelElements[updateDelegate] = elements;
             }
             elements.Add(id);
@@ -843,16 +838,17 @@ namespace Dynamo
                 kvp.Key(kvp.Value);
         }
 
-        internal void RegisterDMUHooks(ElementId id, ElementUpdateDelegate updateDelegate)
+        internal void RegisterDMUHooks(string id, ElementUpdateDelegate updateDelegate)
         {
-            ElementUpdateDelegate del = delegate(HashSet<ElementId> deleted)
+            ElementUpdateDelegate del = delegate(IEnumerable<string> deleted)
             {
-                foreach (ElementId invId in deleted) //invalid)
+                var delIds = deleted as IList<string> ?? deleted.ToList();
+                foreach (var invId in delIds)
                 {
                     Updater.UnRegisterChangeHook(invId, ChangeType.Modify);
                     Updater.UnRegisterChangeHook(invId, ChangeType.Delete);
                 }
-                updateDelegate(deleted); //invalid);
+                updateDelegate(delIds);
             };
 
             Updater.RegisterChangeHook(id, ChangeType.Delete, del);
@@ -881,7 +877,7 @@ namespace Dynamo
             transDelElements.Clear();
         }
 
-        private void TransactionManager_FailuresRaised(FailuresAccessor failuresAccessor)
+        private static void TransactionManager_FailuresRaised(FailuresAccessor failuresAccessor)
         {
             IList<FailureMessageAccessor> failList = failuresAccessor.GetFailureMessages();
 

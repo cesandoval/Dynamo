@@ -23,7 +23,7 @@ namespace Dynamo.Nodes
 {
     [NodeName("Code Block")]
     [NodeCategory(BuiltinNodeCategories.CORE_INPUT)]
-    [NodeDescription("Allows for code to be written")] //<--Change the descp :|
+    [NodeDescription("Allows for DesignScript codes to be authored directly")]
     [IsDesignScriptCompatible]
     public partial class CodeBlockNodeModel : NodeModel
     {
@@ -34,6 +34,13 @@ namespace Dynamo.Nodes
         private List<string> tempVariables = new List<string>();
         private string previewVariable = null;
         private bool shouldFocus = true;
+
+        private struct Formatting
+        {
+            public const int InitialMargin = 4;
+            public const int VerticalMargin = 20;
+            public const string ToolTipForTempVariable = "Statement Output";
+        }
 
         #region Public Methods
 
@@ -94,7 +101,7 @@ namespace Dynamo.Nodes
             inputCode = statements.Where(stmnt => stmnt.Any(c => !char.IsWhiteSpace(c)))
                                   .Aggregate("", (current, stmnt) => current + (stmnt + ";"));
 
-            if (inputCode.Equals(""))
+            if (string.IsNullOrEmpty(inputCode))
                 return inputCode;
 
             //Add the ';' if required
@@ -348,16 +355,38 @@ namespace Dynamo.Nodes
             if (State == ElementState.Error)
                 return null;
 
-            int statementIndex = -1;
-            while (portIndex >= 0)
+            // Here the "portIndex" is back mapped to the corresponding "Statement" 
+            // object. However, not all "Statement" objects produce an output port,
+            // so "portIndex" cannot be used directly to index into "codeStatements" 
+            // list. This loop goes through "codeStatements", decrementing "portIndex"
+            // along the way to determine the right "Statement" object matching the 
+            // port index.
+            // 
+            Statement statement = null;
+            var svs = CodeBlockUtils.GetStatementVariables(codeStatements, true);
+            for (int stmt = 0, port = 0; stmt < codeStatements.Count; stmt++)
             {
-                statementIndex++;
-                if (RequiresOutPort(codeStatements[statementIndex], statementIndex))
-                    portIndex--;
+                if (CodeBlockUtils.DoesStatementRequireOutputPort(svs, stmt))
+                {
+                    if (port == portIndex)
+                    {
+                        statement = codeStatements[stmt];
+                        break;
+                    }
+
+                    port = port + 1;
+                }
             }
 
-            var ident = (codeStatements[statementIndex].AstNode as BinaryExpressionNode).LeftNode as IdentifierNode;
-            var mappedIdent = ProtoCore.Utils.NodeUtils.Clone(ident);
+            if (statement == null)
+                return null;
+
+            var binExprNode = statement.AstNode as BinaryExpressionNode;
+            if (binExprNode == null || (binExprNode.LeftNode == null))
+                return null;
+
+            var identNode = binExprNode.LeftNode as IdentifierNode;
+            var mappedIdent = ProtoCore.Utils.NodeUtils.Clone(identNode);
             MapIdentifiers(mappedIdent);
             return mappedIdent as IdentifierNode;
         }
@@ -393,67 +422,64 @@ namespace Dynamo.Nodes
 
         private void ProcessCode(ref string errorMessage, ref string warningMessage)
         {
-            //Format user test
             code = FormatUserText(code);
-
-            //New code => Revamp everything
             codeStatements.Clear();
 
-            if (Code.Equals("")) //If its null then set preview to null
-            {
+            if (string.IsNullOrEmpty(Code))
                 previewVariable = null;
-            }
 
-            //Parse the text and assign each AST node to a statement instance
+            // Parse the text and assign each AST node to a statement instance
             codeToParse = code;
-            List<string> unboundIdentifiers = new List<string>();
-            List<ProtoCore.AST.Node> parsedNodes;
-            IEnumerable<ProtoCore.BuildData.ErrorEntry> errors;
-            IEnumerable<ProtoCore.BuildData.WarningEntry> warnings;
 
             try
             {
-                if (GraphToDSCompiler.GraphUtilities.Parse(this.GUID, ref codeToParse, out parsedNodes, out errors,
-                    out  warnings, unboundIdentifiers, out tempVariables) && parsedNodes != null)
+                ParseParam parseParam = new ParseParam(this.GUID, codeToParse);
+                if (GraphToDSCompiler.GraphUtilities.Parse(parseParam))
                 {
-                    //Create an instance of statement for each code statement written by the user
-                    for (int i = 0; i < parsedNodes.Count; i++)
+                    if (parseParam.ParsedNodes != null)
                     {
-                        var parsedNode = parsedNodes[i];
-                        Statement tempStatement;
+                        codeToParse = parseParam.ProcessedCode;
 
-                        //Create and save a statement variable from the astnodes generated
-                        tempStatement = Statement.CreateInstance(parsedNode);
-                        codeStatements.Add(tempStatement);
+                        // Create an instance of statement for each code statement written by the user
+                        foreach (var parsedNode in parseParam.ParsedNodes)
+                        {
+                            // Create a statement variable from the generated nodes
+                            codeStatements.Add(Statement.CreateInstance(parsedNode));
+                        }
+
+                        SetPreviewVariable(parseParam.ParsedNodes);
                     }
-
-                    if (parsedNodes.Count > 0)
-                        SetPreviewVariable(parsedNodes);
-                    else
-                        previewVariable = null;
                 }
 
-                if (errors != null && errors.Any())
+                if (parseParam.Errors != null && parseParam.Errors.Any())
                 {
-                    errorMessage = string.Join("\n", errors.Select(m => m.Message));
+                    errorMessage = string.Join("\n", parseParam.Errors.Select(m => m.Message));
                     ProcessError();
                     return;
                 }
 
-                if (warnings != null)
+                if (parseParam.Warnings != null)
                 {
                     // Unbound identifiers in CBN will have input slots.
                     // 
                     // To check function redefinition, we need to check other
                     // CBN to find out if it has been defined yet. Now just
                     // skip this warning.
-                    warnings = warnings.Where(w => w.ID != WarningID.kIdUnboundIdentifier
-                                                && w.ID != WarningID.kFunctionAlreadyDefined);
+                    var warnings = parseParam.Warnings.Where((w) =>
+                    {
+                        return w.ID != WarningID.kIdUnboundIdentifier
+                            && w.ID != WarningID.kFunctionAlreadyDefined;
+                    });
+
                     if (warnings.Any())
                     {
                         warningMessage = string.Join("\n", warnings.Select(m => m.Message));
                     }
                 }
+
+                // Make sure variables have not been declared in other Code block nodes.
+                if (parseParam.UnboundIdentifiers != null)
+                    inputIdentifiers = new List<string>(parseParam.UnboundIdentifiers);
             }
             catch (Exception e)
             {
@@ -463,175 +489,132 @@ namespace Dynamo.Nodes
                 return;
             }
 
-            //Make sure variables have not been declared in other Code block nodes.
-            inputIdentifiers = unboundIdentifiers;
-
-            SetPorts(unboundIdentifiers); //Set the input and output ports based on the statements
+            // Set the input and output ports based on the statements
+            CreateInputOutputPorts();
         }
 
-        private void SetPreviewVariable(List<Node> parsedNodes)
+        private void SetPreviewVariable(IEnumerable<Node> parsedNodes)
         {
-            for (int i = parsedNodes.Count - 1; i >= 0; i--)
+            this.previewVariable = null;
+            if (parsedNodes == null || (!parsedNodes.Any()))
+                return;
+
+            IdentifierNode identifierNode = null;
+            foreach(var parsedNode in parsedNodes.Reverse())
             {
-                var statement = parsedNodes[i] as BinaryExpressionNode;
-                if (null != statement)
+                var statement = parsedNode as BinaryExpressionNode;
+                if (null == statement)
+                    continue;
+
+                identifierNode = statement.LeftNode as IdentifierNode;
+                if (identifierNode != null) // Found the identifier...
                 {
-                    previewVariable = (statement.LeftNode as IdentifierNode).Value;
-                    break;
+                    // ... that is not a temporary variable, take it!
+                    if (!tempVariables.Contains(identifierNode.Value))
+                        break;
                 }
             }
 
-            if (!tempVariables.Contains(previewVariable))
-            {
-                previewVariable = previewVariable + "_" + this.GUID.ToString().Replace("-", string.Empty);
-            }
+            if (identifierNode == null)
+                return;
+
+            var duplicatedNode = new IdentifierNode(identifierNode);
+            MapIdentifiers(duplicatedNode);
+
+            // Of course, if we just needed "duplicatedNode.Value" we would not 
+            // have to clone the original "IdentifierNode". In addition to 
+            // renaming the variable, we also need to keep the array indexer 
+            // (e.g. the "previewVariable" should be "arr[2][3]" instead of just
+            // "arr") to obtain the correct value for that particular array 
+            // element. The best way to keep these array indexers, naturally, is
+            // to use "IdentifierNode.ToString" method, as in:
+            // 
+            //      previewVariable = duplicatedNode.ToString();
+            // 
+            // But the problem now is, "ILiveRunner.InspectNodeValue" method can 
+            // only return a valid RuntimeMirror if "previewVariable" contains 
+            // variable name (i.e. "arr") and nothing else (e.g. "arr[2][3]").
+            // For now, simply set the "previewVariable" to just the array name,
+            // instead of the full expression with array indexers.
+            // 
+            previewVariable = duplicatedNode.Value;
         }
 
         /// <summary>
-        ///     Creates the inport and outport data based on the statements generated form the user code
+        /// Creates the inport and outport data based on 
+        /// the statements generated from the user code.
         /// </summary>
-        /// <param name="unboundIdentifiers"> List of unbound identifiers to be used an inputs</param>
-        private void SetPorts(List<string> unboundIdentifiers)
+        /// 
+        private void CreateInputOutputPorts()
         {
-            inputIdentifiers = unboundIdentifiers;
-
             InPortData.Clear();
             OutPortData.Clear();
-            if (codeStatements.Count == 0 || codeStatements == null)
+            if (codeStatements == null || (codeStatements.Count == 0))
             {
                 RegisterAllPorts();
                 return;
             }
 
-            SetInputPorts(unboundIdentifiers);
-
-            //Since output ports need to be aligned with the statements, calculate the margins
-            //needed based on the statement lines and add them to port data.
-            List<double> verticalMargin = CalculateMarginInPixels();
-            SetOutputPorts(verticalMargin);
+            SetInputPorts();
+            SetOutputPorts();
 
             RegisterAllPorts();
         }
 
-        /// <summary>
-        ///     Creates the output ports with the necessary margins for port alignment
-        /// </summary>
-        /// <param name="verticalMargin"> Distance between the consequtive output ports </param>
-        private void SetOutputPorts(List<double> verticalMargin)
+        private void SetInputPorts()
         {
-            int outportCount = 0;
-            for (int i = 0; i < codeStatements.Count; i++)
-            {
-                Statement s = codeStatements[i];
-                if (RequiresOutPort(s, i))
-                {
-                    string nickName = Statement.GetDefinedVariableNames(s, true)[0];
-                    if (tempVariables.Contains(nickName))
-                        nickName = "Statement Output"; //Set tool tip incase of random var name
-
-                    OutPortData.Add(
-                        new PortData("", nickName, typeof(object)) { VerticalMargin = verticalMargin[outportCount] });
-                    outportCount++;
-                }
-            }
+            // Generate input port data list from the unbound identifiers.
+            var inportData = CodeBlockUtils.GenerateInputPortData(this.inputIdentifiers);
+            foreach (var portData in inportData)
+                InPortData.Add(portData);
         }
 
-        /// <summary>
-        ///     Set a port for each different unbound identifier
-        /// </summary>
-        private void SetInputPorts(IEnumerable<string> unboundIdentifier)
+        private void SetOutputPorts()
         {
-            foreach (string name in unboundIdentifier)
+            // Get all defined variables and their locations
+            var definedVars = codeStatements.Select(s => new KeyValuePair<Variable, int>(s.FirstDefinedVariable, s.StartLine))
+                                            .Where(pair => pair.Key != null)
+                                            .Select(pair => new KeyValuePair<string, int>(pair.Key.Name, pair.Value))
+                                            .OrderBy(pair => pair.Key)
+                                            .GroupBy(pair => pair.Key);
+
+            // Calc each variable's last location of definition
+            var locationMap = new Dictionary<string, int>();
+            foreach (var defs in definedVars)
             {
-                string portName = name;
-                if (portName.Length > Configurations.CBNMaxPortNameLength)
-                    portName = portName.Remove(Configurations.CBNMaxPortNameLength - 3) + "...";
-                InPortData.Add(new PortData(portName, name, typeof(object)));
+                var name = defs.FirstOrDefault().Key;
+                var loc = defs.Select(p => p.Value).Max<int>();
+                locationMap[name] = loc;
             }
-        }
 
-        /// <summary>
-        ///     Based on the start line of ech statement and type, it returns a list of
-        ///     top margins required for the ports
-        /// </summary>
-        private List<double> CalculateMarginInPixels()
-        {
-            var result = new List<double>();
-            int currentOffset = 1; //Used to mark the line immediately after the last output port line
-            int textWrapping = 0;
-            double initialMarginRequired = 4;
-            for (int i = 0; i < codeStatements.Count; i++)
+            // Create output ports
+            var allDefs = locationMap.OrderBy(p => p.Value);
+            if (allDefs.Any())
             {
-                //Dont calculate margin for ports that dont require a port
-                if (!RequiresOutPort(codeStatements[i], i))
-                    continue;
-
-                //Margin = diff between this line and prev port line x port height
-                double margin;
-                if (codeStatements[i].StartLine - currentOffset >= 0)
+                // Create first output port for the first defined variable
+                var firstVar = allDefs.FirstOrDefault();
+                string tooltip = tempVariables.Contains(firstVar.Key) ? Formatting.ToolTipForTempVariable : firstVar.Key;
+                OutPortData.Add(new PortData("", firstVar.Key, typeof(object))
                 {
-                    margin = (codeStatements[i].StartLine - currentOffset) * 20;
-                    currentOffset = codeStatements[i].StartLine + 1;
-                }
-                else
-                {
-                    margin = 0.0;
-                    currentOffset += 1;
-                }
+                    VerticalMargin = Formatting.InitialMargin + (firstVar.Value - 1) * Formatting.VerticalMargin
+                });
 
-                // CRASH:Extract Statement from code does not work for Function calls and causes it to crash
-                //       Hence, am commenting out the formatting die to text wrapping until it gets fixed
-                /*//Calculate extra margin required due to text wrapping
-                if (i != 0)
-                {
-                    Node statementNode = codeStatements[i - 1].AstNode;
+                // Calc the diff between the definition location of variable 
+                // and the defintion location of previous variable
+                var defs = allDefs.Skip(1)
+                                   .Zip(allDefs.Take(allDefs.Count() - 1), 
+                                        (kvp1, kvp2) => new KeyValuePair<string, int>(kvp1.Key, kvp1.Value - kvp2.Value - 1));
 
-                    if (!(statementNode is FunctionDefinitionNode))
+                // Create output ports for variables
+                foreach (var pair in defs)
+                {
+                    tooltip = tempVariables.Contains(pair.Key) ? Formatting.ToolTipForTempVariable : pair.Key;
+                    OutPortData.Add(new PortData("", tooltip, typeof(object))
                     {
-                        string firstDefinedVariable = Statement.GetDefinedVariableNames(codeStatements[i - 1], true)[0];
-                        if (this.TempVariables.Contains(firstDefinedVariable))
-                            statementNode = (statementNode as BinaryExpressionNode).RightNode;
-                    }
-                    string stmntText = ProtoCore.Utils.ParserUtils.ExtractStatementFromCode(code, statementNode);
-
-                    textWrapping = GetExtraLinesDueToTextWrapping(stmntText) * 20;
-                }
-                else
-                    textWrapping = 0;  */
-
-                result.Add(margin + initialMarginRequired + textWrapping);
-                initialMarginRequired = 0;
-            }
-            return result;
-        }
-
-        /// <summary>
-        ///     Checks wheter an outport is required for a given statement. An outport is not required
-        ///     if there are no defined variables or if any of the defined variables have been
-        ///     declared again later on in the code block
-        /// </summary>
-        /// <param name="s"> Statement to check the port</param>
-        /// <param name="pos"> Position of the statement in codeStatements</param>
-        /// <returns></returns>
-        private bool RequiresOutPort(Statement s, int pos)
-        {
-            List<string> defVariables = Statement.GetDefinedVariableNames(s, true);
-
-            //Check if defined variables exist
-            if (defVariables.Count == 0)
-                return false;
-
-            //Check if variable has been redclared later on in the CBN
-            foreach (string varName in defVariables)
-            {
-                for (int i = pos + 1; i < codeStatements.Count; i++)
-                {
-                    List<string> laterDefVariables = Statement.GetDefinedVariableNames(codeStatements[i], true);
-                    if (laterDefVariables.Contains(varName))
-                        return false;
+                        VerticalMargin = pair.Value < 0 ? 0 : pair.Value * Formatting.VerticalMargin
+                    });
                 }
             }
-            return true;
         }
 
         /// <summary>
@@ -673,7 +656,7 @@ namespace Dynamo.Nodes
             {
                 PortModel portModel = OutPorts[i];
                 string portName = portModel.ToolTipContent;
-                if (portModel.ToolTipContent.Equals("Statement Output"))
+                if (portModel.ToolTipContent.Equals(Formatting.ToolTipForTempVariable))
                     portName += i.ToString(CultureInfo.InvariantCulture);
                 if (portModel.Connectors.Count != 0)
                 {
@@ -835,7 +818,7 @@ namespace Dynamo.Nodes
         /// <returns> Returns the extra number of lines caused by text wrapping. For example, the above statement would return 1 </returns>
         private int GetExtraLinesDueToTextWrapping(string statement)
         {
-            double portHeight = Configurations.PortHeight - 0.1;
+            double portHeight = Configurations.PortHeightInPixels - 0.1;
             int numberOfLines = 0;
             string[] lines = statement.Split('\n');
             foreach (string line in lines)
@@ -889,7 +872,7 @@ namespace Dynamo.Nodes
                     && !tempVariables.Contains(ident)
                     && !identNode.Equals(AstIdentifierForPreview))
                 {
-                    identNode.Name = identNode.Value = ident + "_" + this.GUID.ToString().Replace("-", string.Empty);
+                    identNode.Name = identNode.Value = LocalizeIdentifier(ident);
                 }
 
                 MapIdentifiers(identNode.ArrayDimensions);
@@ -953,6 +936,13 @@ namespace Dynamo.Nodes
             {
             }
         }
+
+        private string LocalizeIdentifier(string identifierName)
+        {
+            var guid = this.GUID.ToString().Replace("-", string.Empty);
+            return string.Format("{0}_{1}", identifierName, guid);
+        }
+
         #endregion
     }
 
@@ -1215,9 +1205,8 @@ namespace Dynamo.Nodes
         {
             if (identNode == null)
                 throw new ArgumentNullException();
-            Name = identNode.Value;
-            if (identNode.ArrayDimensions != null)
-                ; //  Implement!
+
+            Name = identNode.ToString();
             Row = identNode.line;
             StartColumn = identNode.col;
         }

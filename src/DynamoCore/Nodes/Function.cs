@@ -366,7 +366,8 @@ namespace Dynamo.Nodes
                         Enumerable.Range(0, count).Where(HasInput),
                         inputAstNodes);
                     resultAst.Add(AstFactory.BuildAssignment(AstIdentifierForPreview, functionCall));
-                    resultAst.Add(AstFactory.BuildAssignment(GetAstIdentifierForOutputIndex(0), AstIdentifierForPreview));
+                    resultAst.Add(
+                        AstFactory.BuildAssignment(GetAstIdentifierForOutputIndex(0), AstIdentifierForPreview));
                 }
                 else
                 {
@@ -377,10 +378,11 @@ namespace Dynamo.Nodes
                     resultAst.Add(AstFactory.BuildAssignment(AstIdentifierForPreview, functionCall));
 
                     // assign the entire result to the only output port
-                    resultAst.Add(
-                        AstFactory.BuildAssignment(
-                            GetAstIdentifierForOutputIndex(0), 
-                            AstIdentifierForPreview));
+
+                    var outId = GetAstIdentifierForOutputIndex(0);
+
+                    if (AstIdentifierForPreview.Value != outId.Value)
+                        resultAst.Add(AstFactory.BuildAssignment(outId, AstIdentifierForPreview));
                 }
             }
             else
@@ -568,17 +570,17 @@ namespace Dynamo.Nodes
                 : AstFactory.BuildIdentifier(InputSymbol);
         }
 
-        protected internal override INode Build(Dictionary<NodeModel, Dictionary<int, INode>> preBuilt, int outPort)
-        {
-            Dictionary<int, INode> result;
-            if (!preBuilt.TryGetValue(this, out result))
-            {
-                result = new Dictionary<int, INode>();
-                result[outPort] = new SymbolNode(GUID.ToString());
-                preBuilt[this] = result;
-            }
-            return result[outPort];
-        }
+        //protected internal override INode Build(Dictionary<NodeModel, Dictionary<int, INode>> preBuilt, int outPort)
+        //{
+        //    Dictionary<int, INode> result;
+        //    if (!preBuilt.TryGetValue(this, out result))
+        //    {
+        //        result = new Dictionary<int, INode>();
+        //        result[outPort] = new SymbolNode(GUID.ToString());
+        //        preBuilt[this] = result;
+        //    }
+        //    return result[outPort];
+        //}
 
         protected override void SaveNode(XmlDocument xmlDoc, XmlElement nodeElement, SaveContext context)
         {

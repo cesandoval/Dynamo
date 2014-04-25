@@ -12,7 +12,7 @@ using Dynamo.Utilities;
 using Dynamo.DSEngine;
 using ProtoCore.Mirror;
 using ProtoCore.DSASM;
-
+using DynCmd = Dynamo.ViewModels.DynamoViewModel;
 
 namespace Dynamo.Tests
 {
@@ -220,15 +220,191 @@ b = c[w][x][y][z];";
         }
 
         [Test]
+        public void Defect_MAGN_1045()
+        {
+            // Create the initial code block node.
+            var codeBlockNode = CreateCodeBlockNode();
+
+            // Before code changes, there should be no in/out ports.
+            Assert.AreEqual(0, codeBlockNode.InPortData.Count);
+            Assert.AreEqual(0, codeBlockNode.OutPortData.Count);
+
+            // After code changes, there should be two output ports.
+            UpdateCodeBlockNodeContent(codeBlockNode, "a = 1..6;\na[2]=a[2] + 1;");
+            Assert.AreEqual(0, codeBlockNode.InPortData.Count);
+            Assert.AreEqual(2, codeBlockNode.OutPortData.Count);
+        }
+
+        [Test]
         public void Defect_MAGN_784()
         {
             var model = Controller.DynamoModel;
             string openPath = Path.Combine(GetTestDirectory(), @"core\dsevaluation\Defect_MAGN_784.dyn");
             model.Open(openPath);
 
-            Assert.AreEqual(false, Controller.DynamoModel.CurrentWorkspace.CanUndo);
-            Assert.AreEqual(false, Controller.DynamoModel.CurrentWorkspace.CanRedo);
+            Assert.IsFalse(Controller.DynamoModel.CurrentWorkspace.CanUndo);
+            Assert.IsFalse(Controller.DynamoModel.CurrentWorkspace.CanRedo);
+        }
+
+        #region CodeBlockUtils Specific Tests
+
+        [Test]
+        public void GenerateInputPortData00()
+        {
+            Assert.Throws<ArgumentNullException>(() =>
+            {
+                // Null as argument will cause exception.
+                CodeBlockUtils.GenerateInputPortData(null);
+            });
+        }
+
+        [Test]
+        public void GenerateInputPortData01()
+        {
+            // Empty list of input should return empty result.
+            var unboundIdentifiers = new List<string>();
+            var data = CodeBlockUtils.GenerateInputPortData(unboundIdentifiers);
+            Assert.IsNotNull(data);
+            Assert.AreEqual(0, data.Count());
+        }
+
+        [Test]
+        public void GenerateInputPortData02()
+        {
+            var unboundIdentifiers = new List<string>();
+            unboundIdentifiers.Add("ShortVarName");
+            unboundIdentifiers.Add("LongerVariableNameThatWillGetTruncated");
+
+            var data = CodeBlockUtils.GenerateInputPortData(unboundIdentifiers);
+            Assert.IsNotNull(data);
+            Assert.AreEqual(2, data.Count());
+
+            var data0 = data.ElementAt(0);
+            Assert.AreEqual(unboundIdentifiers[0], data0.NickName);
+            Assert.AreEqual(unboundIdentifiers[0], data0.ToolTipString);
+
+            var data1 = data.ElementAt(1);
+            Assert.AreEqual("LongerVariableNameTha...", data1.NickName);
+            Assert.AreEqual(unboundIdentifiers[1], data1.ToolTipString);
+        }
+
+        [Test]
+        public void GetStatementVariables00()
+        {
+            Assert.Throws<ArgumentNullException>(() =>
+            {
+                // Null as argument will cause exception.
+                CodeBlockUtils.GetStatementVariables(null, true);
+            });
+        }
+
+        [Test]
+        public void GetStatementVariables01()
+        {
+            // Create a statement of "Value = 1234".
+            var leftNode = new IdentifierNode("Value");
+            var rightNode = new IntNode(1234);
+            var binExprNode = new BinaryExpressionNode(
+                leftNode, rightNode, Operator.assign);
+
+            var statements = new List<Statement>()
+            {
+                Statement.CreateInstance(binExprNode)
+            };
+
+            var vars = CodeBlockUtils.GetStatementVariables(statements, true);
+            Assert.IsNotNull(vars);
+            Assert.AreEqual(1, vars.Count());
+
+            var variables = vars.ElementAt(0);
+            Assert.IsNotNull(variables);
+            Assert.AreEqual(1, variables.Count());
+            Assert.AreEqual("Value", variables.ElementAt(0));
+        }
+
+        [Test]
+        public void StatementRequiresOutputPort00()
+        {
+            Assert.Throws<ArgumentNullException>(() =>
+            {
+                // Null as argument will cause exception.
+                CodeBlockUtils.DoesStatementRequireOutputPort(null, 0);
+            });
+
+            // Create a list of another empty list.
+            var svs = new List<List<string>>() { new List<string>() };
+
+            Assert.Throws<IndexOutOfRangeException>(() =>
+            {
+                // -1 as index argument will cause exception.
+                CodeBlockUtils.DoesStatementRequireOutputPort(svs, -1);
+            });
+
+            Assert.Throws<IndexOutOfRangeException>(() =>
+            {
+                // Out-of-bound index argument will cause exception.
+                CodeBlockUtils.DoesStatementRequireOutputPort(svs, 1);
+            });
+        }
+
+        [Test]
+        public void StatementRequiresOutputPort01()
+        {
+            var svs = new List<List<string>>(); // An empty list should return false.
+            Assert.IsFalse(CodeBlockUtils.DoesStatementRequireOutputPort(svs, 0));
+        }
+
+        [Test]
+        public void StatementRequiresOutputPort02()
+        {
+            var svs = new List<List<string>>()
+            {
+                new List<string>()
+                {
+                    "Apple", "Orange"
+                },
+
+                new List<string>()
+                {
+                    "Watermelon", "Grape", "HoneyDew"
+                },
+
+                new List<string>()
+                {
+                    "Lemon", "Apple"
+                }
+            };
+
+            // "Apple" is redefined on the last statement, no port for first statement.
+            Assert.IsFalse(CodeBlockUtils.DoesStatementRequireOutputPort(svs, 0));
+
+            // None of the variables on statement 1 is redefined, so show output port.
+            Assert.IsTrue(CodeBlockUtils.DoesStatementRequireOutputPort(svs, 1));
+
+            // The last line will display an output port as long as it defines variable.
+            Assert.IsTrue(CodeBlockUtils.DoesStatementRequireOutputPort(svs, 2));
+        }
+
+        #endregion
+
+        private CodeBlockNodeModel CreateCodeBlockNode()
+        {
+            var nodeGuid = Guid.NewGuid();
+            var command = new DynCmd.CreateNodeCommand(
+                nodeGuid, "Code Block", 0, 0, true, false);
+
+            Controller.DynamoViewModel.ExecuteCommand(command);
+            var workspace = Controller.DynamoModel.CurrentWorkspace;
+            var cbn = workspace.NodeFromWorkspace<CodeBlockNodeModel>(nodeGuid);
+
+            Assert.IsNotNull(cbn);
+            return cbn;
+        }
+
+        private void UpdateCodeBlockNodeContent(CodeBlockNodeModel cbn, string value)
+        {
+            var command = new DynCmd.UpdateModelValueCommand(cbn.GUID, "Code", value);
+            Controller.DynamoViewModel.ExecuteCommand(command);
         }
     }
 }
-
