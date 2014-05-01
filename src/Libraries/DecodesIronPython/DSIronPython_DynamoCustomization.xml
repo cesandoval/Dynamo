@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>DSIronPython</name>
+    </assembly>
+    <namespaces>
+        <namespace name="DecodesIronPython">
+            <category>Core.Scripting</category>
+        </namespace>
+    </namespaces>
+</doc>
