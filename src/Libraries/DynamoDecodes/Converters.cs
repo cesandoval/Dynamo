@@ -7,7 +7,7 @@ using IronPython.Runtime;
 using Microsoft.FSharp.Collections;
 using Microsoft.Scripting.Hosting;
 
-namespace DynamoDecodes
+namespace DynamoPython
 {
     internal static class Converters
     {

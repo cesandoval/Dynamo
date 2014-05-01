@@ -105,6 +105,7 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Decodes", "Libraries\DynamoDecodes\Decodes.csproj", "{255AC7CC-430A-49EF-8395-E8657FA7B4BC}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DecodesIronPythonEval", "Libraries\DecodesIronPython\DecodesIronPythonEval.csproj", "{DCA4AA00-5E05-4FB1-90D2-58959ED63DD1}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynamoRevitVersionSelector", "DynamoRevitVersionSelector\DynamoRevitVersionSelector.csproj", "{53D05530-CF64-4883-8F86-B2B819934F83}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RevitTestFramework", "..\test\RevitTestFramework\RevitTestFramework.csproj", "{745CCA0F-549E-4756-A31E-41BF7F905B8A}"
@@ -112,6 +113,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RevitTestFrameworkRunner", "..\test\RevitTestFrameworkRunner\RevitTestFrameworkRunner.csproj", "{D21140F7-D29A-4265-A679-BA76770B7257}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynamoMSOfficeTests", "..\test\Libraries\DynamoMSOfficeTests\DynamoMSOfficeTests.csproj", "{269039F1-126A-46CF-8BEA-257587EDCA6B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DecodesIronPythonUI", "Libraries\IronPythonDecodes\DecodesIronPythonUI.csproj", "{B951CB23-8F75-470F-906E-D20C6948B240}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -303,6 +306,10 @@ Global
 		{269039F1-126A-46CF-8BEA-257587EDCA6B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{269039F1-126A-46CF-8BEA-257587EDCA6B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{269039F1-126A-46CF-8BEA-257587EDCA6B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B951CB23-8F75-470F-906E-D20C6948B240}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B951CB23-8F75-470F-906E-D20C6948B240}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B951CB23-8F75-470F-906E-D20C6948B240}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B951CB23-8F75-470F-906E-D20C6948B240}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -328,6 +335,7 @@ Global
 		{06B9E5B0-7C50-4351-9D88-E159DC25755F} = {FA7BE306-A3B0-45FA-9D87-0C69E6932C13}
 		{255AC7CC-430A-49EF-8395-E8657FA7B4BC} = {FA7BE306-A3B0-45FA-9D87-0C69E6932C13}
 		{DCA4AA00-5E05-4FB1-90D2-58959ED63DD1} = {FA7BE306-A3B0-45FA-9D87-0C69E6932C13}
+		{B951CB23-8F75-470F-906E-D20C6948B240} = {FA7BE306-A3B0-45FA-9D87-0C69E6932C13}
 		{0BC2A611-BD0E-4FCC-A1DE-81F14ED369B2} = {96E47237-FF0E-4724-B2BA-62E5E57E2D32}
 		{75940ACC-3708-4526-8D91-7E3365BAF682} = {96E47237-FF0E-4724-B2BA-62E5E57E2D32}
 		{E4701F9E-41AB-4044-8166-85D924FEB632} = {96E47237-FF0E-4724-B2BA-62E5E57E2D32}

@@ -11,7 +11,7 @@ using Dynamo.Controls;
 using Dynamo.Core;
 using Dynamo.Models;
 using Dynamo.Utilities;
-using DynamoDecodes;
+using DynamoPython;
 using IronPython.Modules;
 using Microsoft.FSharp.Collections;
 using Value = Dynamo.FScheme.Value;
@@ -21,7 +21,7 @@ namespace Dynamo.Nodes
     [NodeName("Decodes Script")]
     [NodeCategory(BuiltinNodeCategories.CORE_SCRIPTING)]
     [NodeDescription("Runs an embedded Decodes script")]
-    public class Decodes : NodeWithOneOutput
+    public class Decodes : NodeModel
     {
         private bool _dirty = true;
         private Value _lastEvalValue;
@@ -157,19 +157,19 @@ namespace Dynamo.Nodes
             return bindings;
         }
 
-        public override Value Evaluate(FSharpList<Value> args)
-        {
-            var bindings = new List<KeyValuePair<string, dynamic>>
-            {
-                new KeyValuePair<string, dynamic>("__persistent__", _stateDict)
-            };
-            Value result = PythonEngineDecodes.Evaluator(_dirty, _script, bindings, MakeBindings(args));
-            _lastEvalValue = result;
+        //public override Value Evaluate(FSharpList<Value> args)
+        //{
+        //    var bindings = new List<KeyValuePair<string, dynamic>>
+        //    {
+        //        new KeyValuePair<string, dynamic>("__persistent__", _stateDict)
+        //    };
+        //    Value result = PythonEngineDecodes.Evaluator(_dirty, _script, bindings, MakeBindings(args));
+        //    _lastEvalValue = result;
 
-            Draw();
+        //    Draw();
 
-            return result;
-        }
+        //    return result;
+        //}
 
         protected override bool UpdateValueCore(string name, string value)
         {
@@ -219,7 +219,7 @@ namespace Dynamo.Nodes
         public static NodeMigrationData Migrate_0630_to_0700(NodeMigrationData data)
         {
             System.Xml.XmlElement xmlNode = data.MigratedNodes.ElementAt(0);
-            var element = MigrationManager.CloneAndChangeType(xmlNode, "DecodesIronPythonNode.DecodesNode");
+            var element = MigrationManager.CloneAndChangeName(xmlNode, "DecodesIronPythonNode.DecodesNode", "Decodes Script");
             element.SetAttribute("nickname", "Decodes Script");
             element.SetAttribute("inputcount", "1");
             element.RemoveAttribute("inputs");
@@ -422,19 +422,19 @@ namespace Dynamo.Nodes
             return bindings;
         }
 
-        public override Value Evaluate(FSharpList<Value> args)
-        {
-            var bindings = new List<KeyValuePair<string, dynamic>>
-            {
-                new KeyValuePair<string, dynamic>("__persistent__", _stateDict)
-            };
-            Value result = PythonEngineDecodes.Evaluator(_dirty, _script, bindings, MakeBindings(args));
-            _lastEvalValue = result;
+        //public override Value Evaluate(FSharpList<Value> args)
+        //{
+        //    var bindings = new List<KeyValuePair<string, dynamic>>
+        //    {
+        //        new KeyValuePair<string, dynamic>("__persistent__", _stateDict)
+        //    };
+        //    Value result = PythonEngineDecodes.Evaluator(_dirty, _script, bindings, MakeBindings(args));
+        //    _lastEvalValue = result;
 
-            Draw();
+        //    Draw();
 
-            return result;
-        }
+        //    return result;
+        //}
 
         protected override bool UpdateValueCore(string name, string value)
         {
@@ -484,7 +484,7 @@ namespace Dynamo.Nodes
         public static NodeMigrationData Migrate_0630_to_0700(NodeMigrationData data)
         {
             System.Xml.XmlElement xmlNode = data.MigratedNodes.ElementAt(0);
-            var element = MigrationManager.CloneAndChangeType(xmlNode, "DecodesIronPythonNode.DecodesNode");
+            var element = MigrationManager.CloneAndChangeName(xmlNode, "DecodesIronPythonNode.DecodesNode", "Decodes Script");
             element.SetAttribute("nickname", "Decodes Script");
             element.SetAttribute("inputcount", xmlNode.GetAttribute("inputs"));
             element.RemoveAttribute("inputs");

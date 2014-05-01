@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using DecodesPythonNode;
+using DSIronPythonNode;
 using Dynamo;
 using Dynamo.Models;
 using Dynamo.Nodes;
@@ -27,7 +27,7 @@ namespace Dynamo.Tests
             // get the python node
             var workspace = model.CurrentWorkspace;
             var nodeModel = workspace.NodeFromWorkspace("3bcad14e-d086-4278-9e08-ed2759ef92f3");
-            DecodesPythonNode.DecodesNode pynode = nodeModel as DecodesPythonNode.DecodesNode;
+            DSIronPythonNode.PythonNode pynode = nodeModel as DSIronPythonNode.PythonNode;
             Assert.NotNull(pynode);
 
             // make changes to python script
@@ -46,7 +46,7 @@ namespace Dynamo.Tests
             model.Open(examplePath);
 
             // get the python node
-            var pynode = model.CurrentWorkspace.Nodes.OfType<DecodesNode>().First();
+            var pynode = model.CurrentWorkspace.Nodes.OfType<PythonNode>().First();
             Assert.NotNull(pynode);
 
             // save original script
@@ -81,7 +81,7 @@ namespace Dynamo.Tests
             model.Open(examplePath);
 
             // get the python node
-            var pynode = model.CurrentWorkspace.Nodes.OfType<DecodesNode>().First();
+            var pynode = model.CurrentWorkspace.Nodes.OfType<PythonNode>().First();
             Assert.NotNull(pynode);
 
             // make changes to python script
@@ -100,7 +100,7 @@ namespace Dynamo.Tests
             model.Open(examplePath);
 
             // get the python node
-            var pynode = model.CurrentWorkspace.Nodes.OfType<DecodesNode>().First();
+            var pynode = model.CurrentWorkspace.Nodes.OfType<PythonNode>().First();
             Assert.NotNull(pynode);
 
             // save original script

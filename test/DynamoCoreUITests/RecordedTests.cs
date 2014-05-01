@@ -4,7 +4,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Input;
 using System.Xml;
-using DecodesPythonNode;
+using DSIronPythonNode;
 using Dynamo;
 using Dynamo.Controls;
 using Dynamo.Models;
@@ -495,8 +495,8 @@ namespace DynamoCoreUITests
             Assert.AreEqual(0, workspace.Connectors.Count);
             Assert.AreEqual(2, workspace.Nodes.Count);
 
-            var python = GetNode("6f580b72-6aeb-4af2-b28b-a2e5b634721b") as DecodesNode;
-            var pvarin = GetNode("f0fc1dea-3874-40a0-a532-90c0ee10f437") as DecodesNode;
+            var python = GetNode("6f580b72-6aeb-4af2-b28b-a2e5b634721b") as PythonNode;
+            var pvarin = GetNode("f0fc1dea-3874-40a0-a532-90c0ee10f437") as PythonNode;
 
             Assert.AreEqual("# Modification 3", python.Script);
             Assert.AreEqual("# Modification 4", pvarin.Script);
@@ -509,8 +509,8 @@ namespace DynamoCoreUITests
             Assert.AreEqual(0, workspace.Connectors.Count);
             Assert.AreEqual(2, workspace.Nodes.Count);
 
-            var python = GetNode("6f580b72-6aeb-4af2-b28b-a2e5b634721b") as DecodesNode;
-            var pvarin = GetNode("f0fc1dea-3874-40a0-a532-90c0ee10f437") as DecodesNode;
+            var python = GetNode("6f580b72-6aeb-4af2-b28b-a2e5b634721b") as PythonNode;
+            var pvarin = GetNode("f0fc1dea-3874-40a0-a532-90c0ee10f437") as PythonNode;
 
             Assert.AreEqual("# Modification 1", python.Script);
             Assert.AreEqual("# Modification 2", pvarin.Script);
@@ -523,8 +523,8 @@ namespace DynamoCoreUITests
             Assert.AreEqual(0, workspace.Connectors.Count);
             Assert.AreEqual(2, workspace.Nodes.Count);
 
-            var python = GetNode("6f580b72-6aeb-4af2-b28b-a2e5b634721b") as DecodesNode;
-            var pvarin = GetNode("f0fc1dea-3874-40a0-a532-90c0ee10f437") as DecodesNode;
+            var python = GetNode("6f580b72-6aeb-4af2-b28b-a2e5b634721b") as PythonNode;
+            var pvarin = GetNode("f0fc1dea-3874-40a0-a532-90c0ee10f437") as PythonNode;
 
             Assert.AreEqual("# Modification 3", python.Script);
             Assert.AreEqual("# Modification 4", pvarin.Script);
