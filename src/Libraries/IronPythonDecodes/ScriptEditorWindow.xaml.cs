@@ -23,6 +23,7 @@ using DynCmd = Dynamo.ViewModels.DynamoViewModel;
 
 namespace DecodesIronPythonNode
 {
+    
     /// <summary>
     /// Interaction logic for ScriptEditorWindow.xaml
     /// </summary>
